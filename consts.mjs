@@ -1,4 +1,5 @@
 export const SETS = [
+    'Paradox-Rift',
     '151',
     'Obsidian-Flames',
     'Scarlet-Violet',

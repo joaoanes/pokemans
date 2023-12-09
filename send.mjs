@@ -3,6 +3,8 @@ import path from 'path';
 import process from 'process';
 import { authenticate } from '@google-cloud/local-auth';
 import { google } from 'googleapis';
+
+import { getSetsFromArgsOrBreak } from './junkyard'
 import { SETS } from './consts.mjs';
 
 const spreadsheetId = '1aVbugDe6T18V9hHklRcKTCiZH-eJFrs5Ei8WLiwCAFA'
@@ -55,14 +57,23 @@ async function authorize() {
 
 
 async function uploadSets(auth) {
-
+  
   const sheets = google.sheets({ version: 'v4', auth });
 
   const sheetData = await sheets.spreadsheets.get({ spreadsheetId })
   const sheetNamesInSpreadsheet = sheetData.data.sheets.map(f => f.properties.title)
 
-  for (const set of SETS) {
-    const content = await fs.readFile(`./jsons/${set}.json`);
+  const setsToUpload = getSetsFromArgsOrBreak(process.argv, SETS)
+
+  for (const set of setsToUpload) {
+    let content
+    try {
+      content = await fs.readFile(`./jsons/${set}.json`);
+    }
+    catch (e) {
+      console.log(`Error on set ${set}, skipping`)
+      continue  
+    }
     const cards = JSON.parse(content);
     if (!sheetNamesInSpreadsheet.includes(set)) {
       console.log("Creating sheet for " + set)

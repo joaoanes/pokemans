@@ -14,7 +14,7 @@ export const loadUrl =
       }
 
       await page.waitForSelector("#brand-gamesDD", {
-        timeout: 5000
+        timeout: 100000
       })
     }
     catch (e) {
