@@ -3,6 +3,6 @@
 rm ./jsons/*.json
 
 set -euxo pipefail
-bun run scrape.mjs "$@"
+bun run scrape.ts "$@"
 
-bun run send.mjs "$@"
+bun run send.ts "$@"

@@ -4,8 +4,10 @@ import process from 'process';
 import { authenticate } from '@google-cloud/local-auth';
 import { google } from 'googleapis';
 
+import { JSONClient } from 'google-auth-library/build/src/auth/googleauth'
+
 import { getSetsFromArgsOrBreak } from './junkyard'
-import { SETS } from './consts.mjs';
+import { SETS } from './consts'
 
 const spreadsheetId = '1aVbugDe6T18V9hHklRcKTCiZH-eJFrs5Ei8WLiwCAFA'
 
@@ -19,8 +21,8 @@ const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
 async function loadSavedCredentialsIfExist() {
   try {
-    const content = await fs.readFile(TOKEN_PATH);
-    const credentials = JSON.parse(content);
+    const content = await fs.readFile(TOKEN_PATH)
+    const credentials = JSON.parse(content.toString())
     return google.auth.fromJSON(credentials);
   } catch (err) {
     return null;
@@ -28,9 +30,9 @@ async function loadSavedCredentialsIfExist() {
 }
 
 async function saveCredentials(client) {
-  const content = await fs.readFile(CREDENTIALS_PATH);
-  const keys = JSON.parse(content);
-  const key = keys.installed || keys.web;
+  const content = await fs.readFile(CREDENTIALS_PATH)
+  const keys = JSON.parse(content.toString())
+  const key = keys.installed || keys.web
   const payload = JSON.stringify({
     type: 'authorized_user',
     client_id: key.client_id,
@@ -41,15 +43,16 @@ async function saveCredentials(client) {
 }
 
 async function authorize() {
-  let client = await loadSavedCredentialsIfExist();
-  if (client) {
+  let client : JSONClient | null = await loadSavedCredentialsIfExist();
+  if (client !== null) {
     return client;
   }
   client = await authenticate({
     scopes: SCOPES,
     keyfilePath: CREDENTIALS_PATH,
-  });
-  if (client.credentials) {
+  }) as JSONClient
+
+  if (client !== null && client.credentials) {
     await saveCredentials(client);
   }
   return client;
@@ -61,7 +64,8 @@ async function uploadSets(auth) {
   const sheets = google.sheets({ version: 'v4', auth });
 
   const sheetData = await sheets.spreadsheets.get({ spreadsheetId })
-  const sheetNamesInSpreadsheet = sheetData.data.sheets.map(f => f.properties.title)
+	if (sheetData === null || sheetData.data?.sheets == null) {return}
+  const sheetNamesInSpreadsheet = sheetData.data.sheets.map(f => f.properties?.title)
 
   const setsToUpload = getSetsFromArgsOrBreak(process.argv, SETS)
 
@@ -77,10 +81,10 @@ async function uploadSets(auth) {
     const cards = JSON.parse(content);
     if (!sheetNamesInSpreadsheet.includes(set)) {
       console.log("Creating sheet for " + set)
-      await sheets.spreadsheets.batchUpdate(
+      sheets.spreadsheets.batchUpdate(
         {
           spreadsheetId,
-          resource: {
+          requestBody: {
             requests: [
               {
                 'addSheet': {
@@ -107,10 +111,9 @@ async function uploadSets(auth) {
     const res = await sheets.spreadsheets.values.append(request);
     console.log(set, res.status)
   }
-
-
 }
 
 
 
-authorize().then(uploadSets).catch(console.error);
+authorize().then(uploadSets).catch(console.error)
+

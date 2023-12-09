@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer-extra'
 import stealth from 'puppeteer-extra-plugin-stealth'
-import cheerio from 'cheerio'
+import { load } from 'cheerio'
+
+import { Card } from './junkyard'
 
 puppeteer.use(stealth())
 
@@ -28,11 +30,11 @@ export const loadUrl =
     }
     const html = await page.content()
 
-    return cheerio.load(html);
+    return load(html);
 
   }
 
-const processUrl = async (url, tab, setName) => {
+const processUrl : (...args) => Promise<Card> = async (url, tab, setName) => {
   const $ = await loadUrl(url, true, 0, tab)
 
   const [thirty, seven, one] = $(".info-list-container").find('dt').filter((i, el) => $(el).text().includes('average price'))
@@ -62,14 +64,14 @@ const processUrl = async (url, tab, setName) => {
 
 export const getCardSetPrices = async (setName, tab, totalPages = 4) => {
   const baseUrl = `https://www.cardmarket.com/en/Pokemon/Products/Singles/${setName}`;
-  const urls = []
-  const cards = [];
+  const urls : string[] = []
+  const cards : Card[] = []
 
   for (let page = 1; page <= totalPages; page++) {
     const $ = await loadUrl(`${baseUrl}?sortBy=price_desc&site=${page}`, true, 0, tab)
     Array.from($(".table-body .row a"))
       .map(
-        (elem) => `https://www.cardmarket.com${elem.attribs["href"]}`
+        (elem : any) => `https://www.cardmarket.com${elem.attribs["href"]}`
       ).filter(e => e.indexOf("Expansion") === -1)
       .forEach((e) => urls.push(e))
   }
@@ -85,3 +87,4 @@ export const getCardSetPrices = async (setName, tab, totalPages = 4) => {
 
   return cards;
 }
+
